@@ -5,31 +5,16 @@ from tkinter.messagebox import showinfo as msg
 from tkinter import messagebox as mb
 import time
 import random
-
+import utilities
 
 conn = sqlite3.connect('database.db')
 c = conn.cursor()
-
-def align_column_and_rows():
-    for i in range(1, 20):
-        root.columnconfigure(i, weight=1)
-
-    for i in range(1, 20):
-        root.rowconfigure(i, weight=1)
-
-def get_words(is_new):
-    c.execute("SELECT * FROM words")
-    conn.commit()
-    if is_new == True:
-        return [row[0] for row in c.fetchall()]
-    if is_new == False:
-        return [row[2] for row in c.fetchall()]
 
 def Add():
     for widget in root.winfo_children():
        widget.destroy()
     
-    align_column_and_rows()
+    utilities.align_column_and_rows(root)
     
     button_exit  = ttk.Button(root, text='<-',command = main_window)
     button_exit.grid(row=1, column=2,  padx=1, pady=1)
@@ -39,7 +24,7 @@ def Add():
     
     def Add_database():
         data = Entry.get()
-        words = get_words(True)
+        words = utilities.get_words(True)
         if data and not data.isspace() and data not in words:
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
@@ -48,6 +33,7 @@ def Add():
             conn.close()
             msg = ttk.Label(root,text = 'Your word succesfully added!',font=('Helvetica', 15))
             msg.grid(row=3,column=3)
+            Entry.delete('0','end')
         elif data in words:
             mb.showwarning('word exist','this word already exists in your dictionary')
     button_submit  = ttk.Button(root, text='submit',command = Add_database)
@@ -56,27 +42,24 @@ def Add():
         button_submit.invoke()
     root.bind('<Return>',on_enter_key)
 
-
 def check():
 
     for widget in root.winfo_children():
        widget.destroy()  
-    global is_delete,is_set
-    is_delete,is_set= False,False
+
+    global is_delete,is_set,is_learnt
+    is_delete,is_set,is_learnt= False,False,False
 
     infobar = ttk.Label(root, text='Welcome to your dictionary',font = ('Helvetica', 20))
     infobar.grid(row = 1, column = 8)
     
     def delete_toggle():
         global is_delete
-
-        
         def destroy():
             global is_delete
             is_delete = not is_delete
             infobar.config(text='Welcome to your dictionary')
             cancel_button.destroy()
-            print(is_delete,is_set)
 
         if is_delete == False and is_set == False:
             is_delete = not is_delete
@@ -84,8 +67,6 @@ def check():
             cancel_button = ttk.Button(root,text='Cancel',command = destroy)
             cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
             infobar.config(text='Which word would you like to delete?')
-
-        print('is delete',is_delete,'is set',is_set)
 
     def set_toggle():
         global is_set
@@ -95,7 +76,8 @@ def check():
             is_set = not is_set
             infobar.config(text='Welcome to your dictionary')
             cancel_button.destroy()
-            print(is_delete,is_set)
+            changing_word_entry.destroy()
+            changing_word_submit.destroy()
 
 
         if is_delete == False and is_set == False:
@@ -103,46 +85,31 @@ def check():
             global cancel_button
             cancel_button = ttk.Button(root,text='Cancel',command = destroy)
             cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
-            infobar.config(text='Which word would you like to set?')
-            print(is_delete,is_set)
-        
 
-        print(is_delete,is_set)
-        
-    
-
-    def on_list_select(event): 
-
-        if is_delete == True:
-            selected_item= mylist.get(mylist.curselection())
-            ans = mb.askquestion('delete word',f"delete word','Are you sure you want to delete {selected_item}  ?")
-            if ans == 'yes':
-                mylist.delete(mylist.curselection())
-                c.execute("DELETE FROM words WHERE New_word = ?", (selected_item,))
-                conn.commit()
-                c.execute("DELETE FROM words WHERE Learnt_word = ?", (selected_item,))
-                conn.commit()
-
-        if is_set == True:
             def update_word():
-                selected_index = mylist.curselection()
-                updated_word = changing_word_entry.get()
-                words = get_words(True) + get_words(False)
-                if updated_word != '' and updated_word not in words:
-                    c.execute(f"UPDATE words SET New_word = '{updated_word}' WHERE New_word = '{mylist.get(selected_index)}'")
-                    conn.commit()
-                    c.execute(f"UPDATE words SET Learnt_word = '{updated_word}' WHERE Learnt_word = '{mylist.get(selected_index)}'")
-                    conn.commit()
-                    mylist.delete(selected_index)
-                    mylist.insert(selected_index,updated_word)
-                    changing_word_entry.destroy()
-                    changing_word_submit.destroy()
-                    infobar.config(text="Welcome to your dictionary")
-                    global cancel_button,is_set
-                    cancel_button.destroy()
-                    is_set = False
-                elif updated_word in words:
-                    mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
+                if mylist.curselection() == ():
+                    mb.showwarning('choose a word','You have to choose a word from list first')
+                else:
+                    selected_index = mylist.curselection()
+                    updated_word = changing_word_entry.get()
+                    words = utilities.get_words(True) + utilities.get_words(False)
+                    if updated_word != '' and updated_word not in words:
+                        c.execute(f"UPDATE words SET New_word = '{updated_word}' WHERE New_word = '{mylist.get(selected_index)}'")
+                        conn.commit()
+                        c.execute(f"UPDATE words SET Learnt_word = '{updated_word}' WHERE Learnt_word = '{mylist.get(selected_index)}'")
+                        conn.commit()
+                        mylist.delete(selected_index)
+                        mylist.insert(selected_index,updated_word)
+                        changing_word_entry.destroy()
+                        changing_word_submit.destroy()
+                        infobar.config(text="Welcome to your dictionary")
+                        global cancel_button,is_set
+                        cancel_button.destroy()
+                        is_set = False
+
+                    elif updated_word in words:
+                        mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
+
 
 
             infobar.config(text='Which word would you like to set?')
@@ -157,50 +124,26 @@ def check():
             def on_enter_key(event):
                 changing_word_submit.invoke()
             root.bind('<Return>',on_enter_key)
-  
+        
+    
 
+    def on_list_select(event): 
+        global cancel_button,is_delete
+        if is_delete == True:
+            selected_item= mylist.get(mylist.curselection())
+            ans = mb.askquestion('delete word',f"Are you sure you want to delete {selected_item}  ?")
+            if ans == 'yes':
+                mylist.delete(mylist.curselection())
+                c.execute("DELETE FROM words WHERE New_word = ?", (selected_item,))
+                conn.commit()
+                c.execute("DELETE FROM words WHERE Learnt_word = ?", (selected_item,))
+                conn.commit()
+                cancel_button.destroy()
+                infobar.config(text='Welcome to your dictionary')
+                is_delete = False
 
-
-
-    def on_list_click_set():
-        if mylist.curselection() != (): 
-            
-            def destroy_label():
-                label_change_word.destroy()
-
-            def update_word():
-                selected_index = mylist.curselection()
-                updated_word = changing_word_entry.get()
-                words = get_words(True) + get_words(False)
-                if updated_word != '' and updated_word not in words:
-                    c.execute(f"UPDATE words SET New_word = '{updated_word}' WHERE New_word = '{mylist.get(selected_index)}'")
-                    conn.commit()
-                    c.execute(f"UPDATE words SET Learnt_word = '{updated_word}' WHERE Learnt_word = '{mylist.get(selected_index)}'")
-                    conn.commit()
-                    mylist.delete(selected_index)
-                    mylist.insert(selected_index,updated_word)
-                    changing_word_entry.destroy()
-                    changing_word_submit.destroy()
-                    label_change_word.config(text = 'Your word has been succesfully updated!')
-                elif updated_word in words:
-                    mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
-
-                    
-            label_change_word = ttk.Label(root,text='Which word would you like your words to be updated to?',font = ('Helvetica',13))
-            label_change_word.grid(row=1,columnspan=3,column= 6,sticky='w')
-
-            changing_word_entry = ttk.Entry(root,font = ('Helvetica',15))
-            changing_word_entry.grid(row = 2,columnspan=2, column=5)
-
-            changing_word_submit = ttk.Button(root,text = 'Submit',command = update_word)
-            changing_word_submit.grid(row=2,column=7)
-
-            def on_enter_key(event):
-                changing_word_submit.invoke()
-            root.bind('<Return>',on_enter_key)
-
-
- 
+        if is_set == True:
+            pass 
 
     scrollbar = ttk.Scrollbar(root)
     #scrollbar.grid(row = 1,column=10,sticky='nsew')
@@ -253,11 +196,7 @@ def check():
 
 
 
-    align_column_and_rows()
-
-
-
-
+    utilities.align_column_and_rows(root)
 
     c.execute('SELECT * FROM words')
     conn.commit()
@@ -273,7 +212,7 @@ def practice():
     conn.commit()
     iterations = [row[1] for row in c.fetchall()]
     
-    words = get_words(True)
+    words = utilities.get_words(True)
 
 
 
@@ -312,7 +251,7 @@ def practice():
                 c.execute(f"UPDATE words SET New_word = NULL WHERE New_word = '{word}'")   
                 conn.commit()
   
-    align_column_and_rows()
+    utilities.align_column_and_rows(root)
     
     button_exit  = ttk.Button(root, text='<-----',command = main_window)
     button_exit.grid(row=1, column=2,  padx=1, pady=1,sticky='nsew')
@@ -332,7 +271,7 @@ def main_window():
 
 
     # Label
-    label = tk.Label(root, text='This is a label', font=('Helvetica', 30))
+    label = tk.Label(root, text='Language learning', font=('Helvetica', 30))
     label.grid(row=2, column=0, columnspan=19, sticky='nsew', pady=(20, 0))
 
 

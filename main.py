@@ -38,6 +38,7 @@ def Add():
             mb.showwarning('word exist','this word already exists in your dictionary')
     button_submit  = ttk.Button(root, text='submit',command = Add_database)
     button_submit.grid(row=2, column=17,  padx=1, pady=1)
+
     def on_enter_key(event):
         button_submit.invoke()
     root.bind('<Return>',on_enter_key)
@@ -46,12 +47,19 @@ def check():
 
     for widget in root.winfo_children():
        widget.destroy()  
+    
+
+    button_frame = tk.Frame(root, borderwidth=2, relief="solid")
+    button_frame.grid(row = 3,column = 2)
+
+    set_widgets_frame = tk.Frame(root, borderwidth=2, relief="solid")
+    set_widgets_frame.grid(row = 1,columnspan=5,column=4)
 
     global is_delete,is_set,is_learnt
     is_delete,is_set,is_learnt= False,False,False
-
-    infobar = ttk.Label(root, text='Welcome to your dictionary',font = ('Helvetica', 20))
-    infobar.grid(row = 1, column = 8)
+      
+    infobar = ttk.Label(set_widgets_frame, text='Welcome to your dictionary',font = ('Helvetica', 20))
+    infobar.grid(row = 1, column = 8,columnspan=3)
     
     def delete_toggle():
         global is_delete
@@ -64,7 +72,7 @@ def check():
         if is_delete == False and is_set == False:
             is_delete = not is_delete
             global cancel_button
-            cancel_button = ttk.Button(root,text='Cancel',command = destroy)
+            cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
             cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
             infobar.config(text='Which word would you like to delete?')
 
@@ -83,7 +91,7 @@ def check():
         if is_delete == False and is_set == False:
             is_set = not is_set
             global cancel_button
-            cancel_button = ttk.Button(root,text='Cancel',command = destroy)
+            cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
             cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
 
             def update_word():
@@ -115,18 +123,16 @@ def check():
             infobar.config(text='Which word would you like to set?')
             infobar.grid(row=1,column=4,columnspan=8)
 
-            changing_word_entry = ttk.Entry(root,font = ('Helvetica',15))
-            changing_word_entry.grid(row = 2,columnspan=2, column=5)
+            changing_word_entry = ttk.Entry(set_widgets_frame,font = ('Helvetica',15))
+            changing_word_entry.grid(row = 2,columnspan=4, column=5)
     
-            changing_word_submit = ttk.Button(root,text = 'Submit',command = update_word)
-            changing_word_submit.grid(row=2,column=7)
+            changing_word_submit = ttk.Button(set_widgets_frame,text = 'Submit',command = update_word)
+            changing_word_submit.grid(row=2,column=9,columnspan=2)
             
             def on_enter_key(event):
                 changing_word_submit.invoke()
             root.bind('<Return>',on_enter_key)
         
-    
-
     def on_list_select(event): 
         global cancel_button,is_delete
         if is_delete == True:
@@ -146,13 +152,13 @@ def check():
             pass 
 
     scrollbar = ttk.Scrollbar(root)
-    #scrollbar.grid(row = 1,column=10,sticky='nsew')
     scrollbar.grid(row=2, column=20, rowspan=19, sticky='nsew')
 
     mylist = tk.Listbox(root, yscrollcommand = scrollbar.set, selectbackground="#a6a6a6", selectforeground="black", exportselection=False, height=19, selectmode="single", bg="#f0f0f0", relief="flat", bd=0, font=('Helvetica', 15))
 
     mylist.grid(row=2, column=19, rowspan=19, sticky='nsew',pady = (20,0))
     mylist.bind("<<ListboxSelect>>", on_list_select)
+    
     scrollbar.config( command = mylist.yview )
 
     def switch_on_off():
@@ -182,17 +188,17 @@ def check():
     button_exit  = ttk.Button(root, text='<-----',command = main_window)
     button_exit.grid(row=1, column=2,  padx=1, pady=1,sticky='nsew')
 
-    set_word = ttk.Button(root, text='Set words',command=set_toggle)
+    set_word = ttk.Button(button_frame, text='Set words',command=set_toggle)
     set_word.grid(row=2, rowspan=2, column=2, padx=10, pady=10)
 
-    delete_word = ttk.Button(root, text='Delete words',command=delete_toggle)
+    delete_word = ttk.Button(button_frame, text='Delete words',command=delete_toggle)
     delete_word.grid(row=4, rowspan=2, column=1,  columnspan=3, padx=10, pady=10)
 
-    switch = ttk.Button(root,text = 'switch',command = switch_on_off)
+    switch = ttk.Button(button_frame,text = 'switch',command = switch_on_off)
     switch.grid(row=6, rowspan=2, column=1,  columnspan=3, padx=10, pady=10)
 
     list_label = ttk.Label(root, text = 'New words',font = ('Helvetica', 20))#,relief='solid')
-    list_label.grid(row = 1, column=19,columnspan=3,sticky='nsew')#,pady(20,0))
+    list_label.grid(row = 1, column=17,columnspan=3,sticky='nsew')#,pady(20,0))
 
 
 
@@ -269,8 +275,6 @@ def main_window():
     for widget in root.winfo_children():
         widget.destroy()
 
-
-    # Label
     label = tk.Label(root, text='Language learning', font=('Helvetica', 30))
     label.grid(row=2, column=0, columnspan=19, sticky='nsew', pady=(20, 0))
 

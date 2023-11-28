@@ -10,6 +10,13 @@ import utilities
 conn = sqlite3.connect('database.db')
 c = conn.cursor()
 
+#c.execute("""CREATE TABLE words (
+#          New_word text,
+#          Number_of_iterations integer,
+#          Learnt_word text,
+#          translation_of_the_word text
+#)""")
+#conn.commit()
 
 
 def Add():
@@ -222,7 +229,7 @@ def practice():
     
     words = utilities.get_words(True)
     
-    def generate_new_word():
+    def generate_new_word(event = None):
         c.execute('SELECT * FROM words')
         conn.commit()
         whole_table = c.fetchall()
@@ -259,31 +266,36 @@ def practice():
           mb.showerror('Error','You should add some words first')
     utilities.align_column_and_rows(root)
 
-    generatre__word_label_frame = tk.Frame(root,width=550,height=100)#,borderwidth=2,relief='solid')
-    generatre__word_label_frame.grid(row = 4,column = 7,columnspan=5,sticky='nsew')
-    generatre__word_label_frame.grid_propagate(0)
+    generatre_word_label_frame = tk.Frame(root, width=550, height=100)
+    generatre_word_label_frame.grid(row=4, column=7, columnspan=5, sticky='nsew')
+    generatre_word_label_frame.grid_propagate(0)
 
-    word_label = ttk.Label(generatre__word_label_frame,text='word',font= ('Helvetica', 30))
-    word_label.grid(row = 1,column = 3,padx=(50,25),pady=(25,25))
+    press_enter_label = tk.Label(root, text='Press enter for generating new word', font=('Helvetica', 20))
+    press_enter_label.grid(row=1, column=7)  # Adjusted the column index
 
-    word_indicator = ttk.Label(generatre__word_label_frame,text = "",font= ('Helvetica', 20))
-    word_indicator.grid(row = 1,column=7,padx = (25,25),sticky='nsew')
+    word_label = ttk.Label(generatre_word_label_frame, text='word', font=('Helvetica', 30))
+    word_label.grid(row=0, column=0, padx=(50, 25), pady=(25, 25))  # Adjusted the row index
 
-    generate_button = ttk.Button(root,text = 'Generate',command = generate_new_word)
-    generate_button.grid(row=4,column=15,sticky='e')
+    word_indicator = ttk.Label(generatre_word_label_frame, text="", font=('Helvetica', 20))
+    word_indicator.grid(row=0, column=1, padx=(25, 25), sticky='nsew')  # Adjusted the row and column indices
 
-    iterations_frame = ttk.Frame(root,width = 400,height=100)#,borderwidth=2,relief="solid")
-    iterations_frame.grid(row = 5,column = 7,columnspan=5,sticky='nsew')
+    translate_button = ttk.Button(root, text='Translate')
+    translate_button.grid(row=4, column=12, sticky='e')  # Adjusted the column index
+
+    iterations_frame = ttk.Frame(root, width=400, height=100)
+    iterations_frame.grid(row=5, column=7, columnspan=5, sticky='nsew')
     iterations_frame.grid_propagate(0)
-    
-    iteration_indicator = ttk.Label(iterations_frame,text = f"",font= ('Helvetica', 20))
-    iteration_indicator.grid(row=7,column=10,rowspan=3,columnspan=3)
 
-    iteration_label = ttk.Label(iterations_frame,text='Iterations',font=('Helvetica', 25))
-    iteration_label.grid(row = 7,column=7,padx = (25,25))
+    iteration_indicator = ttk.Label(iterations_frame, text="", font=('Helvetica', 20))
+    iteration_indicator.grid(row=0, column=6, rowspan=3, columnspan=3)  # Adjusted the row index
 
-    button_exit = ttk.Button(root, text='<-----',command = main_window)
-    button_exit.grid(row=1, column=2,  padx=1, pady=1,sticky='nsew')
+    iteration_label = ttk.Label(iterations_frame, text='Iterations', font=('Helvetica', 25))
+    iteration_label.grid(row=0, column=3, padx=(25, 25))  # Adjusted the row index
+
+    button_exit = ttk.Button(root, text='<-----', command=main_window)
+    button_exit.grid(row=1, column=2, padx=1, pady=1, sticky='nsew')
+
+    root.bind('<Return>',generate_new_word)
 
 def main_window():
     for widget in root.winfo_children():

@@ -8,7 +8,6 @@ import random
 import utilities
 
 conn = sqlite3.connect('database.db')
-c = conn.cursor()
 
 #c.execute("""CREATE TABLE words (
 #          New_word text,

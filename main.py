@@ -153,9 +153,6 @@ def check():
                 infobar.config(text='Welcome to your dictionary')
                 is_delete = False
 
-        if is_set == True:
-            pass 
-
     scrollbar = ttk.Scrollbar(root)
     scrollbar.grid(row=2, column=20, rowspan=19, sticky='nsew')
 

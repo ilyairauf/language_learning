@@ -11,38 +11,60 @@ conn = sqlite3.connect('database.db')
 c = conn.cursor()
 
 
-
-
 def Add():
     for widget in root.winfo_children():
        widget.destroy()
     
     utilities.align_column_and_rows(root)
     
+    
     button_exit  = ttk.Button(root, text='<-',command = main_window)
     button_exit.grid(row=1, column=2,  padx=1, pady=1)
 
-    Entry = ttk.Entry(root, font=('Helvetica', 25),width=35)
-    Entry.grid(row=2, column=2,columnspan = 10,)
+    Entry = ttk.Entry(root, font=('Helvetica', 25),width=25)
+    Entry.grid(row=4, column=5,columnspan = 7,)
+    
+    translation_entry = ttk.Entry(root,font=('Helvetica', 25),width=25)
+    translation_entry.grid(row=6,column=5,columnspan=7)
+
+    word = tk.Label(root,text='word',font=('Helvetica',25))
+    word.grid(row=4,column=4)
+
+    word_translation_label = tk.Label(root,text='Translation',font=('Helvetica',25))
+    word_translation_label.grid(row=6,column=4)
+
+    infobar_Add = tk.Label(root,text=(''))
+    infobar_Add.grid(row=7,column=5)
     
     def Add_database():
-        data = Entry.get()
+        word_entry_value = Entry.get()
+        word_translation_value = translation_entry.get()
         words = utilities.get_words(True)
-        if data and not data.isspace() and data not in words and len(data)<27:
+        
+        if word_entry_value !='' and  word_entry_value != ''and word_translation_value !=''  and word_entry_value not in words and len(word_entry_value)<27 and len(word_translation_value) <=27:
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
-            c.execute(f'INSERT INTO words (New_word,Number_of_iterations) VALUES(?,?)',(data,0))
+            c.execute(f'INSERT INTO words (New_word,Number_of_iterations,translation_of_the_word) VALUES(?,?,?)',(word_entry_value,0,word_translation_value))
             conn.commit()
             conn.close()
-            msg = ttk.Label(root,text = 'Your word succesfully added!',font=('Helvetica', 15))
-            msg.grid(row=3,column=3)
+            
+            infobar_Add.config(text = 'Your word succesfully added!',font=('Helvetica', 15),fg='green')
+            infobar_Add.grid(row=7,column=7)
             Entry.delete('0','end')
-        elif data in words:
-            mb.showwarning('word exist','this word already exists in your dictionary')
-        elif len(data)>=27:
-            mb.showerror('lenght error', "Your word can't be longer than 27 letters")
+            translation_entry.delete('0','end')
+
+        elif word_entry_value in words:
+            infobar_Add.config(text=("This word already exists in your dictionary"),fg='red',font=(10))
+            infobar_Add.grid(row = 7,column=7)
+        elif len(word_entry_value) >=27 or len(word_translation_value) >=27:
+            infobar_Add.config(text=("Your word can't be longer than 27 letters"),fg='red',font=(10))
+            infobar_Add.grid(row = 7,column=7)
+        elif  word_entry_value == '' or word_translation_value == '' :
+            infobar_Add.config(text=('Please fill in all required fields'),fg='red',font=(10))
+            infobar_Add.grid(row = 7,column=7)
+        
     button_submit  = ttk.Button(root, text='submit',command = Add_database)
-    button_submit.grid(row=2, column=17,  padx=1, pady=1)
+    button_submit.grid(row=4, column=17,rowspan=3,  padx=1, pady=1)
 
     def on_enter_key(event):
         button_submit.invoke()
@@ -50,23 +72,57 @@ def Add():
 
 def check():
 
+
+
+
+
+
     for widget in root.winfo_children():
        widget.destroy()  
     
-    button_frame = tk.Frame(root,width=200,height=300,padx=15)
+    button_frame = tk.Frame(root,width=200,height=400,padx=15)#,borderwidth=2,relief='solid')
     button_frame.grid(row=2, column=2,  padx=1, pady=1)
     button_frame.grid_propagate(0)
 
-    set_widgets_frame = tk.Frame(root,width=470,height=400)
+    set_widgets_frame = tk.Frame(root,width=470,height=500)
     set_widgets_frame.grid(row = 1,columnspan=5,column=4,rowspan=2)
     set_widgets_frame.grid_propagate(0)
 
-    global is_delete,is_set,is_learnt
-    is_delete,is_set,is_learnt= False,False,False
+    global is_delete,is_set,is_learnt,is_translated
+    is_delete,is_set,is_learnt,is_translated= False,False,False,True
       
     infobar = ttk.Label(set_widgets_frame, text='Welcome to your dictionary',font = ('Helvetica', 20))
-    infobar.grid(row = 1, column = 8,columnspan=3,pady=(30,0))
-    
+    infobar.grid(row = 1, column = 8,columnspan=3)
+
+    def translate():
+        global is_translated,is_learnt
+        is_translated = not is_translated
+        mylist.delete(0,tk.END)
+        c.execute('SELECT * FROM words')
+        conn.commit()
+        if is_learnt == False:
+            if is_translated == False:
+                for i in c.fetchall():
+                    if i[0] != None:
+                        mylist.insert('0',i[3])
+                list_label.config(text='Translated')
+            else:
+                for i in c.fetchall():
+                    if i[0] != None:
+                        mylist.insert('0',i[0])
+                list_label.config(text='New words')
+        else:
+            if is_translated == False:
+                for i in c.fetchall():
+                    if i[2] != None:
+                        mylist.insert('0',i[3])
+                list_label.config(text='Translated')
+            else:
+                for i in c.fetchall():
+                    if i[2] != None:
+                        mylist.insert('0',i[2])
+                list_label.config(text='Learnt words')
+
     def delete_toggle():
         global is_delete
         def destroy():
@@ -79,7 +135,7 @@ def check():
             is_delete = not is_delete
             global cancel_button
             cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
-            cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
+            cancel_button.grid(row =10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
             infobar.config(text='Which word would you like to delete?')
 
     def set_toggle():
@@ -98,7 +154,7 @@ def check():
             is_set = not is_set
             global cancel_button
             cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
-            cancel_button.grid(row = 8,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
+            cancel_button.grid(row = 10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
 
             def update_word():
                 if mylist.curselection() == ():
@@ -108,9 +164,12 @@ def check():
                     updated_word = changing_word_entry.get()
                     words = utilities.get_words(True) + utilities.get_words(False)
                     if updated_word != '' and updated_word not in words:
-                        c.execute(f"UPDATE words SET New_word = '{updated_word}' WHERE New_word = '{mylist.get(selected_index)}'")
-                        conn.commit()
-                        c.execute(f"UPDATE words SET Learnt_word = '{updated_word}' WHERE Learnt_word = '{mylist.get(selected_index)}'")
+                        word_to_update = mylist.get(selected_index)
+
+                        c.execute("UPDATE words SET New_word = ? WHERE New_word = ?", (updated_word, word_to_update))
+                        c.execute("UPDATE words SET Learnt_word = ? WHERE Learnt_word = ?", (updated_word, word_to_update))
+                        c.execute("UPDATE words SET Translation_of_the_word = ? WHERE Translation_of_the_word = ?", (updated_word, word_to_update))
+                        
                         conn.commit()
                         mylist.delete(selected_index)
                         mylist.insert(selected_index,updated_word)
@@ -146,20 +205,19 @@ def check():
             ans = mb.askquestion('delete word',f"Are you sure you want to delete {selected_item}  ?")
             if ans == 'yes':
                 mylist.delete(mylist.curselection())
-                c.execute("DELETE FROM words WHERE New_word = ?", (selected_item,))
+                c.execute("DELETE FROM words WHERE New_word = ? OR Learnt_word = ? OR Translation_of_the_word = ?", (selected_item, selected_item, selected_item))
                 conn.commit()
-                c.execute("DELETE FROM words WHERE Learnt_word = ?", (selected_item,))
-                conn.commit()
+
                 cancel_button.destroy()
                 infobar.config(text='Welcome to your dictionary')
                 is_delete = False
 
     scrollbar = ttk.Scrollbar(root)
-    scrollbar.grid(row=2, column=20, rowspan=19, sticky='nsew')
+    scrollbar.grid(row=2, column=19, rowspan=19, sticky='nsew')
 
-    mylist = tk.Listbox(root, yscrollcommand = scrollbar.set, selectbackground="#a6a6a6", selectforeground="black", exportselection=False, height=19, selectmode="single", bg="#f0f0f0", relief="flat", bd=0, font=('Helvetica', 19))
+    mylist = tk.Listbox(root, yscrollcommand = scrollbar.set, selectbackground="#a6a6a6", selectforeground="black", exportselection=False, height=19,width=30, selectmode="single", bg="#f0f0f0", relief="flat", bd=0, font=('Helvetica', 19))
 
-    mylist.grid(row=2, column=19, rowspan=19, sticky='nsew',pady = (20,0))
+    mylist.grid(row=2, column=17, rowspan=19, sticky='nsew',pady = (20,0))
     mylist.bind("<<ListboxSelect>>", on_list_select)
     
     scrollbar.config( command = mylist.yview )
@@ -200,6 +258,9 @@ def check():
     switch = ttk.Button(button_frame,text = 'switch',command = switch_on_off)
     switch.grid(row=6, rowspan=2, column=1,  columnspan=3, padx=10, pady=10)
 
+    translate_button = ttk.Button(button_frame,text = 'translate',command = translate)
+    translate_button.grid(row=8, rowspan=2, column=1,  columnspan=3, padx=10, pady=10)
+
     list_label = ttk.Label(root, text = 'New words',font = ('Helvetica', 20))#,relief='solid')
     list_label.grid(row = 1, column=17,columnspan=3,sticky='nsew')#,pady(20,0))
 
@@ -220,10 +281,13 @@ def practice():
     c.execute('SELECT * FROM words')
     conn.commit()
     iterations = [row[1] for row in c.fetchall()]
-    
+    global translation 
+    translation = ''
     words = utilities.get_words(True)
+
     
     def generate_new_word(event = None):
+        global translation
         c.execute('SELECT * FROM words')
         conn.commit()
         whole_table = c.fetchall()
@@ -234,14 +298,15 @@ def practice():
             def generate_word(max_attempts=100):
                 for _ in range(max_attempts):
                     word_informations = random.choice(whole_table)
-                    word, iterations = word_informations[0], word_informations[1]
+                    word, iterations,translation = word_informations[0], word_informations[1], word_informations[3]
+                    
                     if word is not None:
-                        return word,iterations
+                        return word,iterations,translation
 
                 mb.showinfo('Congrats','Congratulations! you finished all of the words')
-                return None,None
+                return None,None,None
 
-            word,iterations = generate_word()
+            word,iterations,translation = generate_word()
             if word is None:
                 main_window()
             c.execute(f"UPDATE words SET Number_of_iterations = {iterations+1} WHERE New_word = '{word}'")
@@ -250,12 +315,12 @@ def practice():
             word_indicator.config(text = word)
             iteration_indicator.config(text = iterations+1)
             
-            #if (iterations+1) %5 == 0:
-            #    answer = mb.askquestion('did you learn?', f"you practised the word {word} {iterations+1} times. Did you learn?")
-            #    if answer == 'yes':
-            #        c.execute(f"UPDATE words SET Learnt_word = '{word}' WHERE New_word = '{word}'")  
-            #        c.execute(f"UPDATE words SET New_word = NULL WHERE New_word = '{word}'")   
-            #        conn.commit()
+            if (iterations+1) %5 == 0:
+                answer = mb.askquestion('did you learn?', f"you practised the word {word} {iterations+1} times. Did you learn?")
+                if answer == 'yes':
+                    c.execute(f"UPDATE words SET Learnt_word = '{word}' WHERE New_word = '{word}'")  
+                    c.execute(f"UPDATE words SET New_word = NULL WHERE New_word = '{word}'")   
+                    conn.commit()
         else:
           mb.showerror('Error','You should add some words first')
     utilities.align_column_and_rows(root)
@@ -265,7 +330,7 @@ def practice():
     generatre_word_label_frame.grid_propagate(0)
 
     press_enter_label = tk.Label(root, text='Press enter for generating new word', font=('Helvetica', 20))
-    press_enter_label.grid(row=1, column=7)  # Adjusted the column index
+    press_enter_label.grid(row=1, column=7)  # Adjusted the column index,Ə
 
     word_label = ttk.Label(generatre_word_label_frame, text='word', font=('Helvetica', 30))
     word_label.grid(row=0, column=0, padx=(50, 25), pady=(25, 25))  # Adjusted the row index
@@ -273,7 +338,7 @@ def practice():
     word_indicator = ttk.Label(generatre_word_label_frame, text="", font=('Helvetica', 20))
     word_indicator.grid(row=0, column=1, padx=(25, 25), sticky='nsew')  # Adjusted the row and column indices
 
-    translate_button = ttk.Button(root, text='Translate')
+    translate_button = ttk.Button(root, text='Translate',command = lambda: word_indicator.config(text=translation))
     translate_button.grid(row=4, column=12, sticky='e')  # Adjusted the column index
 
     iterations_frame = ttk.Frame(root, width=400, height=100)
@@ -302,6 +367,7 @@ def main_window():
     # Buttons with enhanced appearance
     style = ttk.Style()
     style.configure("TButton", font=('Helvetica', 14), padding=10)
+    
     button1 = ttk.Button(root, text='Practice',command=practice)
     button1.grid(row=4, rowspan=2, column=3, columnspan=3, sticky='nsew', padx=10, pady=10)
 
@@ -323,7 +389,6 @@ def main_window():
 
     root.mainloop()
 
-
 if __name__ == "__main__":
     root = tk.Tk()
     root.title('Program')
@@ -331,14 +396,12 @@ if __name__ == "__main__":
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
-    window_width = 1000
+    window_width = 1200
     window_height = 700
     x_position = (screen_width - window_width) // 2
-    y_position = (screen_height - window_height) // 2
+    y_position = (screen_height - window_height) // 2 -35
 
     root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
 
     main_window()
     root.mainloop()
-
-

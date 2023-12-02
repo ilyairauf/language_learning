@@ -7,8 +7,23 @@ import time
 import random
 import utilities
 
+#add button adjusted adjust set and delete  buttons
+
 conn = sqlite3.connect('database.db')
 c = conn.cursor()
+
+#c.execute("""CREATE TABLE words(
+#
+#        New_word text,
+#        Number_of_iterations integer,
+#        Learnt_word text,
+#        translation_of_the_word text
+#    )
+# """)
+#conn.commit()
+c.execute('SELECT * FROM words')
+conn.commit()
+print(c.fetchall())
 
 
 def Add():
@@ -72,6 +87,30 @@ def Add():
 
 def check():
 
+    def update_word():
+        if mylist.curselection() == ():
+            mb.showwarning('choose a word','You have to choose a word from list first')
+        else:
+            selected_index = mylist.curselection()
+            updated_word = changing_word_entry.get()
+            words = utilities.get_words(True) + utilities.get_words(False)
+            if updated_word != '' and updated_word not in words:
+                word_to_update = mylist.get(selected_index)
+                c.execute("UPDATE words SET New_word = ? WHERE New_word = ?", (updated_word, word_to_update))
+                c.execute("UPDATE words SET Learnt_word = ? WHERE Learnt_word = ?", (updated_word, word_to_update))
+                c.execute("UPDATE words SET Translation_of_the_word = ? WHERE Translation_of_the_word = ?", (updated_word, word_to_update))
+                
+                conn.commit()
+                mylist.delete(selected_index)
+                mylist.insert(selected_index,updated_word)
+                changing_word_entry.grid_forget()
+                changing_word_submit.grid_forget()
+                infobar.config(text="Welcome to your dictionary")
+                global cancel_button,is_set
+                cancel_button.grid_forget()
+                is_set = False
+            elif updated_word in words:
+                mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
 
 
 
@@ -80,19 +119,20 @@ def check():
     for widget in root.winfo_children():
        widget.destroy()  
     
-    button_frame = tk.Frame(root,width=200,height=400,padx=15)#,borderwidth=2,relief='solid')
+    button_frame = tk.Frame(root,width=200,height=550,padx=15)#,borderwidth=2,relief='solid')
     button_frame.grid(row=2, column=2,  padx=1, pady=1)
     button_frame.grid_propagate(0)
 
-    set_widgets_frame = tk.Frame(root,width=470,height=500)
+    set_widgets_frame = tk.Frame(root,width=470,height=600)#,borderwidth=2,relief='solid')
     set_widgets_frame.grid(row = 1,columnspan=5,column=4,rowspan=2)
     set_widgets_frame.grid_propagate(0)
 
-    global is_delete,is_set,is_learnt,is_translated
+    global is_delete,is_set,is_learnt,is_translated,cancel_button,changing_word_entry,changing_word_submit
     is_delete,is_set,is_learnt,is_translated= False,False,False,True
+
       
     infobar = ttk.Label(set_widgets_frame, text='Welcome to your dictionary',font = ('Helvetica', 20))
-    infobar.grid(row = 1, column = 8,columnspan=3)
+    infobar.grid(row = 0, column = 8,columnspan=3)
 
     def translate():
         global is_translated,is_learnt
@@ -123,77 +163,56 @@ def check():
                         mylist.insert('0',i[2])
                 list_label.config(text='Learnt words')
 
-    def delete_toggle():
-        global is_delete
-        def destroy():
-            global is_delete
-            is_delete = not is_delete
-            infobar.config(text='Welcome to your dictionary')
-            cancel_button.destroy()
+    def destroy():
+        global is_set,is_deletechanging_word_entry,changing_word_submit,cancel_button
+        is_set,is_delete = False,False
+        infobar.config(text='Welcome to your dictionary')
+        cancel_button.grid_forget()
+        if changing_word_entry.winfo_ismapped():
+            changing_word_entry.grid_forget()
+            changing_word_submit.grid_forget()
+    
 
-        if is_delete == False and is_set == False:
-            is_delete = not is_delete
-            global cancel_button
-            cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
-            cancel_button.grid(row =10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
+    cancel_button = cancel_button = ttk.Button(button_frame,text='Cancel',command = lambda: destroy())
+    changing_word_entry = changing_word_entry = ttk.Entry(set_widgets_frame,width=22,font = ('Helvetica',15))
+    changing_word_submit = changing_word_submit = ttk.Button(set_widgets_frame,text = 'Submit', command =lambda: update_word())
+    
+    cancel_button.grid_forget()
+    changing_word_entry.grid_forget()
+    changing_word_submit.grid_forget()
+
+    def recycle():
+        pass
+
+    def delete_toggle():
+        global is_delete,cancel_button,is_set
+        is_delete,is_set = True,False
+        if is_delete == True: 
+            if not cancel_button.winfo_ismapped():
+                cancel_button.grid(row =10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
             infobar.config(text='Which word would you like to delete?')
+            if changing_word_entry.winfo_ismapped():
+                changing_word_entry.grid_forget()
+                changing_word_submit.grid_forget()
 
     def set_toggle():
-        global is_set
-
-        def destroy():
-            global is_set
-            is_set = not is_set
-            infobar.config(text='Welcome to your dictionary')
-            cancel_button.destroy()
-            changing_word_entry.destroy()
-            changing_word_submit.destroy()
-
-
-        if is_delete == False and is_set == False:
-            is_set = not is_set
-            global cancel_button
-            cancel_button = ttk.Button(button_frame,text='Cancel',command = destroy)
-            cancel_button.grid(row = 10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)   
-
-            def update_word():
-                if mylist.curselection() == ():
-                    mb.showwarning('choose a word','You have to choose a word from list first')
-                else:
-                    selected_index = mylist.curselection()
-                    updated_word = changing_word_entry.get()
-                    words = utilities.get_words(True) + utilities.get_words(False)
-                    if updated_word != '' and updated_word not in words:
-                        word_to_update = mylist.get(selected_index)
-
-                        c.execute("UPDATE words SET New_word = ? WHERE New_word = ?", (updated_word, word_to_update))
-                        c.execute("UPDATE words SET Learnt_word = ? WHERE Learnt_word = ?", (updated_word, word_to_update))
-                        c.execute("UPDATE words SET Translation_of_the_word = ? WHERE Translation_of_the_word = ?", (updated_word, word_to_update))
-                        
-                        conn.commit()
-                        mylist.delete(selected_index)
-                        mylist.insert(selected_index,updated_word)
-                        changing_word_entry.destroy()
-                        changing_word_submit.destroy()
-                        infobar.config(text="Welcome to your dictionary")
-                        global cancel_button,is_set
-                        cancel_button.destroy()
-                        is_set = False
-
-                    elif updated_word in words:
-                        mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
-
+        global is_set,is_delete,changing_word_entry,changing_word_submit,cancel_button
+        is_delete,is_set = False,True
+        if is_set == True:
+            if not cancel_button.winfo_ismapped():
+                cancel_button.grid(row =10,rowspan=2,column = 1,columnspan=3,padx=10,pady=10)     
 
 
             infobar.config(text='Which word would you like to set?')
             infobar.grid(row=1,column=4,columnspan=8)
 
-            changing_word_entry = ttk.Entry(set_widgets_frame,width=22,font = ('Helvetica',15))
+
             changing_word_entry.grid(row = 2,columnspan=4, column=5,pady=(25,0),padx=(0,18))
-    
-            changing_word_submit = ttk.Button(set_widgets_frame,text = 'Submit',command = update_word)
-            changing_word_submit.grid(row=2,column=10,columnspan=2,pady=(25,0))
+            changing_word_entry.delete('0',tk.END)
+
             
+            changing_word_submit.grid(row=2,column=10,columnspan=2,pady=(25,0))
+
             def on_enter_key(event):
                 changing_word_submit.invoke()
             root.bind('<Return>',on_enter_key)
@@ -208,7 +227,7 @@ def check():
                 c.execute("DELETE FROM words WHERE New_word = ? OR Learnt_word = ? OR Translation_of_the_word = ?", (selected_item, selected_item, selected_item))
                 conn.commit()
 
-                cancel_button.destroy()
+                cancel_button.grid_forget()
                 infobar.config(text='Welcome to your dictionary')
                 is_delete = False
 
@@ -223,8 +242,8 @@ def check():
     scrollbar.config( command = mylist.yview )
 
     def switch_on_off():
-        global is_learnt
-        is_learnt = not is_learnt
+        global is_learnt,is_translated
+        is_learnt,is_translated = not is_learnt,True
         if is_learnt == True:
             list_label.config(text = 'Learnt words')
         else:
@@ -260,6 +279,9 @@ def check():
 
     translate_button = ttk.Button(button_frame,text = 'translate',command = translate)
     translate_button.grid(row=8, rowspan=2, column=1,  columnspan=3, padx=10, pady=10)
+
+    recycle_bin = ttk.Button(button_frame,text='Recycle bin',command = recycle)
+    recycle_bin.grid(row = 18,column=1,rowspan=2,columnspan=3,padx=10,pady=10)
 
     list_label = ttk.Label(root, text = 'New words',font = ('Helvetica', 20))#,relief='solid')
     list_label.grid(row = 1, column=17,columnspan=3,sticky='nsew')#,pady(20,0))

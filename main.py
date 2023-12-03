@@ -12,15 +12,8 @@ import utilities
 conn = sqlite3.connect('database.db')
 c = conn.cursor()
 
-#c.execute("""CREATE TABLE words(
-#
-#        New_word text,
-#        Number_of_iterations integer,
-#        Learnt_word text,
-#        translation_of_the_word text
-#    )
-# """)
-#conn.commit()
+
+conn.commit()
 c.execute('SELECT * FROM words')
 conn.commit()
 print(c.fetchall())
@@ -59,7 +52,7 @@ def Add():
         if word_entry_value !='' and  word_entry_value != ''and word_translation_value !=''  and word_entry_value not in words and len(word_entry_value)<27 and len(word_translation_value) <=27:
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
-            c.execute(f'INSERT INTO words (New_word,Number_of_iterations,translation_of_the_word) VALUES(?,?,?)',(word_entry_value,0,word_translation_value))
+            c.execute(f'INSERT INTO words (New_word,Number_of_iterations,translation_of_the_word,deleted) VALUES(?,?,?,?)',(word_entry_value,0,word_translation_value,0))
             conn.commit()
             conn.close()
             
@@ -112,7 +105,9 @@ def check():
             elif updated_word in words:
                 mb.showerror('word already exist', "Sorry you can't update a word to an existing one")
 
-
+    c.execute('SELECT * FROM words')
+    conn.commit()
+    print(c.fetchall())
 
 
 
@@ -127,41 +122,28 @@ def check():
     set_widgets_frame.grid(row = 1,columnspan=5,column=4,rowspan=2)
     set_widgets_frame.grid_propagate(0)
 
-    global is_delete,is_set,is_learnt,is_translated,cancel_button,changing_word_entry,changing_word_submit
-    is_delete,is_set,is_learnt,is_translated= False,False,False,True
+    global is_delete,is_set,is_learnt,is_translated,cancel_button,changing_word_entry,changing_word_submit,is_deleted
+    is_delete,is_set,is_learnt,is_translated,is_deleted= False,False,False,True,False
 
       
     infobar = ttk.Label(set_widgets_frame, text='Welcome to your dictionary',font = ('Helvetica', 20))
     infobar.grid(row = 0, column = 8,columnspan=3)
 
     def translate():
-        global is_translated,is_learnt
+        global is_translated, is_learnt
         is_translated = not is_translated
-        mylist.delete(0,tk.END)
+        mylist.delete(0, tk.END)
         c.execute('SELECT * FROM words')
         conn.commit()
-        if is_learnt == False:
-            if is_translated == False:
-                for i in c.fetchall():
-                    if i[0] != None:
-                        mylist.insert('0',i[3])
-                list_label.config(text='Translated')
-            else:
-                for i in c.fetchall():
-                    if i[0] != None:
-                        mylist.insert('0',i[0])
-                list_label.config(text='New words')
-        else:
-            if is_translated == False:
-                for i in c.fetchall():
-                    if i[2] != None:
-                        mylist.insert('0',i[3])
-                list_label.config(text='Translated')
-            else:
-                for i in c.fetchall():
-                    if i[2] != None:
-                        mylist.insert('0',i[2])
-                list_label.config(text='Learnt words')
+        
+        column_index = 3 if not is_learnt else 2
+        label_text = 'Translated' if not is_learnt else 'New words' if not is_translated else 'Learnt words'
+        
+        for i in c.fetchall():
+            if i[column_index] is not None:
+                mylist.insert('0', i[column_index])
+        
+        list_label.config(text=label_text)
 
     def destroy():
         global is_set,is_deletechanging_word_entry,changing_word_submit,cancel_button
@@ -182,7 +164,24 @@ def check():
     changing_word_submit.grid_forget()
 
     def recycle():
-        pass
+        global is_deleted
+        is_deleted = not is_deleted
+        mylist.delete(0,tk.END)
+        c.execute('SELECT * FROM words')
+        conn.commit()
+        if is_deleted:
+            for line in c.fetchall():
+                if line[4] == 1:
+                   mylist.insert(0,line[0])     
+            recycle_bin.config(text = 'New words') 
+            list_label.config(text='Deleted words')
+        else:
+            for line in c.fetchall():
+                if line[4] == 0:
+                    mylist.insert(0,line[0])
+            recycle_bin.config(text = 'Recycle bin') 
+            list_label.config(text='New words')
+    
 
     def delete_toggle():
         global is_delete,cancel_button,is_set
@@ -224,8 +223,9 @@ def check():
             ans = mb.askquestion('delete word',f"Are you sure you want to delete {selected_item}  ?")
             if ans == 'yes':
                 mylist.delete(mylist.curselection())
-                c.execute("DELETE FROM words WHERE New_word = ? OR Learnt_word = ? OR Translation_of_the_word = ?", (selected_item, selected_item, selected_item))
+                c.execute("UPDATE words SET deleted =  ? WHERE New_word = ? OR Learnt_word = ? OR Translation_of_the_word = ?", (1,selected_item, selected_item, selected_item))             
                 conn.commit()
+                print('commited')
 
                 cancel_button.grid_forget()
                 infobar.config(text='Welcome to your dictionary')
@@ -261,7 +261,8 @@ def check():
             conn.commit()
 
             for line in c.fetchall():
-                mylist.insert(0,line[0])              
+                if line[4] == 0:
+                    mylist.insert(0,line[0])              
 
 
 
@@ -294,7 +295,8 @@ def check():
     conn.commit()
 
     for line in c.fetchall():
-        mylist.insert(0,line[0])
+        if line[4] == 0:
+            mylist.insert(0,line[0])
 
 def practice():
     for widget in root.winfo_children():
